@@ -10,7 +10,7 @@ type Event string
 
 // Transition represents a path from one state to another through a specific event.
 // A transition can have extra validations passed to it via a BeforeFn (Example: Make sure a balance is above $0).
-// A transition can have side effects passed to it via an AfterFn (Example: save to a database).
+// A transition can have side effects passed to it via an AfterFn (Example: updating the item state or saving to a database).
 type Transition[T any] struct {
 	From  State
 	Event Event
