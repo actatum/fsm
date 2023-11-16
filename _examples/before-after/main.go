@@ -17,6 +17,7 @@ func (ls *LightSwitch) SetState(s fsm.State) {
 }
 
 func main() {
+	db := make(map[string]*LightSwitch)
 	ls := LightSwitch{
 		State: "off",
 		Name:  "living room",
@@ -26,11 +27,31 @@ func main() {
 			From:  fsm.State("off"),
 			Event: fsm.Event("flip_switch"),
 			To:    fsm.State("on"),
+			BeforeFn: func(ls *LightSwitch) error {
+				if _, ok := db[ls.Name]; !ok {
+					db[ls.Name] = ls
+				}
+				return nil
+			},
+			AfterFn: func(ls *LightSwitch) error {
+				db[ls.Name] = ls
+				return nil
+			},
 		},
 		{
 			From:  fsm.State("on"),
 			Event: fsm.Event("flip_switch"),
 			To:    fsm.State("off"),
+			BeforeFn: func(ls *LightSwitch) error {
+				if _, ok := db[ls.Name]; !ok {
+					db[ls.Name] = ls
+				}
+				return nil
+			},
+			AfterFn: func(ls *LightSwitch) error {
+				db[ls.Name] = ls
+				return nil
+			},
 		},
 	}...)
 
@@ -39,4 +60,5 @@ func main() {
 	}
 
 	fmt.Println(m.State(), ls.State)
+	fmt.Printf("%+v\n", db)
 }

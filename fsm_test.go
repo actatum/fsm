@@ -6,9 +6,18 @@ import (
 	"testing"
 )
 
+type testItem struct {
+	State State
+	Val   string
+}
+
+func (i *testItem) SetState(s State) {
+	i.State = s
+}
+
 func TestNewFSM(t *testing.T) {
 	t.Run("no transitions", func(t *testing.T) {
-		item := "testing string"
+		item := testItem{State: "test"}
 		fsm := NewFSM(State("test"), &item)
 
 		if len(fsm.transitions) != 0 {
@@ -20,8 +29,8 @@ func TestNewFSM(t *testing.T) {
 	})
 
 	t.Run("one transition", func(t *testing.T) {
-		item := "testing string"
-		fsm := NewFSM(State("test"), &item, Transition[string]{
+		item := testItem{State: "test"}
+		fsm := NewFSM(State("test"), &item, Transition[*testItem]{
 			From:  "test",
 			Event: "run",
 			To:    "running",
@@ -37,7 +46,9 @@ func TestNewFSM(t *testing.T) {
 }
 
 func TestFSM_State(t *testing.T) {
-	x := "hi"
+	x := testItem{
+		State: "test",
+	}
 	fsm := NewFSM(State("test"), &x)
 
 	if fsm.State() != State("test") {
@@ -47,8 +58,8 @@ func TestFSM_State(t *testing.T) {
 
 func TestFSM_HandleEvent(t *testing.T) {
 	t.Run("no before/after func", func(t *testing.T) {
-		item := "pending"
-		fsm := NewFSM(State("pending"), &item, Transition[string]{
+		item := testItem{State: "pending"}
+		fsm := NewFSM(State("pending"), &item, Transition[*testItem]{
 			From:  "pending",
 			Event: "send",
 			To:    "sent",
@@ -64,13 +75,13 @@ func TestFSM_HandleEvent(t *testing.T) {
 	})
 
 	t.Run("before func", func(t *testing.T) {
-		item := "pending"
-		fsm := NewFSM(State("pending"), &item, Transition[string]{
+		item := testItem{State: "pending"}
+		fsm := NewFSM(State("pending"), &item, Transition[*testItem]{
 			From:  "pending",
 			Event: "send",
 			To:    "sent",
-			BeforeFn: func(s *string) error {
-				*s = "ive been changed"
+			BeforeFn: func(i *testItem) error {
+				i.Val = "ive been changed"
 				return nil
 			},
 		})
@@ -79,7 +90,7 @@ func TestFSM_HandleEvent(t *testing.T) {
 			t.Error(err)
 		}
 
-		if item != "ive been changed" {
+		if item.Val != "ive been changed" {
 			t.Errorf("expected beforeFn to run but it didn't")
 		}
 		if fsm.State() != State("sent") {
@@ -88,13 +99,13 @@ func TestFSM_HandleEvent(t *testing.T) {
 	})
 
 	t.Run("after func", func(t *testing.T) {
-		item := "pending"
-		fsm := NewFSM(State("pending"), &item, Transition[string]{
+		item := testItem{State: "pending"}
+		fsm := NewFSM(State("pending"), &item, Transition[*testItem]{
 			From:  "pending",
 			Event: "send",
 			To:    "sent",
-			AfterFn: func(s *string) error {
-				*s = "ive been changed"
+			AfterFn: func(i *testItem) error {
+				i.Val = "ive been changed"
 				return nil
 			},
 		})
@@ -103,7 +114,7 @@ func TestFSM_HandleEvent(t *testing.T) {
 			t.Error(err)
 		}
 
-		if item != "ive been changed" {
+		if item.Val != "ive been changed" {
 			t.Errorf("expected beforeFn to run but it didn't")
 		}
 		if fsm.State() != State("sent") {
@@ -112,17 +123,17 @@ func TestFSM_HandleEvent(t *testing.T) {
 	})
 
 	t.Run("before and after func", func(t *testing.T) {
-		item := "pending"
-		fsm := NewFSM(State("pending"), &item, Transition[string]{
+		item := testItem{State: "pending"}
+		fsm := NewFSM(State("pending"), &item, Transition[*testItem]{
 			From:  "pending",
 			Event: "send",
 			To:    "sent",
-			BeforeFn: func(s *string) error {
-				*s = "ive been changed"
+			BeforeFn: func(i *testItem) error {
+				i.Val = "ive been changed"
 				return nil
 			},
-			AfterFn: func(s *string) error {
-				*s = "ive been changed again"
+			AfterFn: func(i *testItem) error {
+				i.Val = "ive been changed again"
 				return nil
 			},
 		})
@@ -131,7 +142,7 @@ func TestFSM_HandleEvent(t *testing.T) {
 			t.Error(err)
 		}
 
-		if item != "ive been changed again" {
+		if item.Val != "ive been changed again" {
 			t.Errorf("expected beforeFn to run but it didn't")
 		}
 		if fsm.State() != State("sent") {
@@ -140,17 +151,17 @@ func TestFSM_HandleEvent(t *testing.T) {
 	})
 
 	t.Run("no transition for event", func(t *testing.T) {
-		item := "pending"
-		fsm := NewFSM(State("pending"), &item, Transition[string]{
+		item := testItem{State: "pending"}
+		fsm := NewFSM(State("pending"), &item, Transition[*testItem]{
 			From:  "pending",
 			Event: "send",
 			To:    "sent",
-			BeforeFn: func(s *string) error {
-				*s = "ive been changed"
+			BeforeFn: func(i *testItem) error {
+				i.Val = "ive been changed"
 				return nil
 			},
-			AfterFn: func(s *string) error {
-				*s = "ive been changed again"
+			AfterFn: func(i *testItem) error {
+				i.Val = "ive been changed again"
 				return nil
 			},
 		})
@@ -167,16 +178,16 @@ func TestFSM_HandleEvent(t *testing.T) {
 	})
 
 	t.Run("before func error", func(t *testing.T) {
-		item := "pending"
-		fsm := NewFSM(State("pending"), &item, Transition[string]{
+		item := testItem{State: "pending"}
+		fsm := NewFSM(State("pending"), &item, Transition[*testItem]{
 			From:  "pending",
 			Event: "send",
 			To:    "sent",
-			BeforeFn: func(s *string) error {
+			BeforeFn: func(i *testItem) error {
 				return fmt.Errorf("before func error")
 			},
-			AfterFn: func(s *string) error {
-				*s = "ive been changed again"
+			AfterFn: func(i *testItem) error {
+				i.Val = "ive been changed again"
 				return nil
 			},
 		})
@@ -188,16 +199,16 @@ func TestFSM_HandleEvent(t *testing.T) {
 	})
 
 	t.Run("after func error", func(t *testing.T) {
-		item := "pending"
-		fsm := NewFSM(State("pending"), &item, Transition[string]{
+		item := testItem{State: "pending"}
+		fsm := NewFSM(State("pending"), &item, Transition[*testItem]{
 			From:  "pending",
 			Event: "send",
 			To:    "sent",
-			BeforeFn: func(s *string) error {
-				*s = "ive been changed"
+			BeforeFn: func(i *testItem) error {
+				i.Val = "ive been changed"
 				return nil
 			},
-			AfterFn: func(s *string) error {
+			AfterFn: func(i *testItem) error {
 				return fmt.Errorf("after func error")
 			},
 		})
